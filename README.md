@@ -1,7 +1,7 @@
 # PRA2-Tipologia-i-cicle-de-vida-de-les-dades
 Tipologia i cicle de vida de les dades
 
-PRA 2 NEteja i anàlisi de les dades
+PRA 2 Neteja i anàlisi de les dades
 
 # Descripció
 
