@@ -5,7 +5,7 @@ PRA 2 Neteja i anàlisi de les dades
 
 # Descripció
 
-En aquest treball s’ha realitzat la neteja i l'anàlisi d'un dataset que conté dades sobre els passatgers que viatjaven al Titànic i si van sobreviure o no. S'han aplicat una sèrie de transformacions i anàlisis estadístics.
+En aquest treball s’ha realitzat la neteja i l'anàlisi d'un dataset que conté dades sobre els passatgers que viatjaven al Titànic i si van sobreviure o no (https://www.kaggle.com/c/titanic). S'han aplicat una sèrie de transformacions i anàlisis estadístics.
 
 # Membres del grup
 
