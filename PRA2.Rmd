@@ -1,0 +1,471 @@
+---
+title: "PRA2"
+author: 'Autor: Omar Brid Roufak i Montse Sanahuja Mateu'
+date: "Decembre 2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Descripció del dataset
+
+El dataset escollit, recull un conjunt de dades dels passatgers que van pujar al Titanic. Recull dades demogràfiques com el nom, l'edat, el gènere i els familiars que tenien a bord i altres dades com: si van sobreviure o no, de quina classe eren, quina quantitat van pagar pel bitllet i en quin lloc van pujar al vaixell.
+
+El que volem estudiar en aquest conjunt de dades és la correlació dels diferents atributs amb el fet de si van sobreviure o no.
+
+
+
+## Integració i selecció del dataset
+
+Primer de tot carregarem el dataset per poder analitzar els atributs que conté.
+
+```{r}
+totalData <- read.csv('train.csv',stringsAsFactors = FALSE)
+
+```
+
+```{r}
+summary(totalData)
+
+```
+```{r}
+str(totalData)
+
+```
+
+
+Tenim 12 atributs i 891 observacions.
+
+A continuació detallarem cadascun dels atributs:
+
+**PassengerId**
+    integer amb el identificador de cada passatger.
+    
+**Survived**
+    integer podem trobar dos valors: 0 i 1 segons si van sobreviure o no.
+    
+**Pclass**
+    integer amb el número de classe en que viatjaven, 1a, 2a o 3a classe.
+    
+**Name**
+    string amb el nom dels passatgers.
+    
+**Sex**
+    string amb dos categories, male i female.
+    
+**Age**
+    Numèric, edat dels passatgers.
+    
+**SibSp**
+    numèric, nombre de germans o cònjugues a bord.
+    
+**Parch**
+    numèric, nombre de pares o fills a bord.
+    
+**Ticket**
+    string, amb el nom del tiquet.
+    
+**Fare**
+    numèric, preu del tiquet.
+    
+**Cabin**
+    string, nom de la cabina dels passatgers.
+    
+**Embarked**
+    string, lloc de l'embarcament amb tres opcions C, S i Q.
+
+
+## Neteja de les dades
+
+Abans de passar a l'anàlisis de les dades les hem de netejar.
+
+Primer de tot decidirem amb quins atributs ens volem quedar. Anem a revisar quants valors nuls o buits conté cada atribut:
+
+
+
+```{r}
+colSums(is.na(totalData))
+
+```
+
+Tenim 177 nuls en el camp Age, com no podem saber l'edat d'aquests passatgers els hi podem assignar la mitjana.
+
+
+
+
+```{r}
+totalData$Age[is.na(totalData$Age)] <- mean(totalData$Age,na.rm=T)
+
+```
+
+```{r}
+colSums(totalData=="")
+
+```
+
+De 891 observacions, en l'atribut Cabin que mostra el nom de la cabina dels tripulants, tenim 687 valors buits, com no podem saber el nom de la cabina, assignarem "Desconegut" en aquests valors buits.
+
+```{r}
+
+
+totalData$Cabin[(totalData$Cabin)==""] <- "Desconegut"
+
+```
+
+En Embarked tenim també dos valors buits. Anem a visualitzar aquests dos passatgers:
+
+```{r}
+
+totalData[totalData$Embarked=="", ]
+
+```
+
+
+És curiós que tots dos passatgers tenen el mateix número de bitllet, de preu i de cabina. En aquest cas, com no podem saber des d'on van embarcar aquests dos individus, ho omplirem com a "Desconegut".
+
+
+```{r}
+totalData$Embarked[(totalData$Embarked)==""] <- "Desconegut"
+
+```
+
+
+Finalment, ja no tenim cap atribut amb valors buits.
+
+```{r}
+colSums(totalData=="")
+
+```
+
+
+Si ens tornem a fixar amb l'atribut Age, veiem que hi ha valors que contenen decimals.
+
+```{r}
+totalData$Age
+
+```
+
+
+Els menors d'1 significa que l'individu és un nadó de mesos, però els superiors a 1 no queda molt clar. El que farem serà discretitzar aquesta columna per formar grups d'edat.
+
+```{r}
+totalData["Age"] <- cut(totalData$Age, breaks = c(0,10,20,30,40,50,60,70,100), labels = c("0-9", "10-19", "20-29", "30-39","40-49","50-59","60-69","70-79"))
+
+head(totalData)
+```
+
+Un cop hem netejat les dades i aplicat les transformacions pertinents, procedim a analitzar-les.
+
+## Anàlisis de les dades
+
+En primer lloc fem un anàlisi visual de les dades de les que disposem. Per tal de fer-ho, construïm la següent visualització.
+
+```{r}
+if (!require('grid')) install.packages('grid')
+if (!require('gridExtra')) install.packages('gridExtra')
+if (!require('ggplot2')) install.packages('ggplot2')
+
+library(gridExtra)
+library(ggplot2)
+
+grid.newpage()
+plotbyClass<-ggplot(totalData,aes(Pclass))+geom_bar() +labs(x="Class", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("blue","#008000"))+ggtitle("Class")
+plotbyAge<-ggplot(totalData,aes(Age))+geom_bar() +labs(x="Age", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("blue","#008000"))+ggtitle("Age")
+plotbySex<-ggplot(totalData,aes(Sex))+geom_bar() +labs(x="Sex", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("blue","#008000"))+ggtitle("Sex")
+plotbySurvived<-ggplot(totalData,aes(Survived))+geom_bar() +labs(x="Survived", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("blue","#008000"))+ggtitle("Survived")
+grid.arrange(plotbyClass,plotbyAge,plotbySex,plotbySurvived,ncol=2)
+```
+
+Com podem observar, en el dataset amb el que treballarem hi ha una majoria de persones que viatjaven en 3a classe. A més, comptem amb més passatgers de sexe masculí que de sexe femení. Per altra banda, tenim més mostres de passatgers no-supervivents que de supervivents. Tots aquests fets s'han de tenir en compte a l'hora de construir un model per tal de no introduir biaixos.
+
+L'anàlisi que es vol fer amb el dataset proposat és la relació entre els diferents atributs amb si els passatgers han sobreviscut o no i extreure'n conclusions. És per això que mitjançant la següent visualització veurem quina proporció de passatgers han sobreviscut segons l'atribut observat.
+
+Per tal de fer això, haurem de convertir l'atribut "Survived" a categòric (ja que ara és numèric).
+
+```{r}
+totalData$Survived = as.factor(totalData$Survived)
+```
+
+```{r}
+
+grid.newpage()
+plotbyClassbySurv<-ggplot(totalData,aes(Pclass,fill=Survived))+geom_bar() +labs(x="Class", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("black","#008000"))+ggtitle("Survived by Class")
+plotbyAgebySurv<-ggplot(totalData,aes(Age,fill=Survived))+geom_bar() +labs(x="Age", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("black","#008000"))+ggtitle("Survived by Age")
+plotbySexbySurv<-ggplot(totalData,aes(Sex,fill=Survived))+geom_bar() +labs(x="Sex", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("black","#008000"))+ggtitle("Survived by Sex")
+grid.arrange(plotbyClassbySurv,plotbyAgebySurv,plotbySexbySurv,ncol=2)
+
+```
+
+A simple vista podem observar com la majoria dels passatgers que no van sobreviure viatjaven en tercera classe. També podem observar que, en proporció, el percentatge de dones sobrevivents és major que el d'homes. Anem a veure els resultats de forma numèrica.
+
+```{r}
+
+taula_SS <- table(totalData$Sex, totalData$Survived)
+taula_SS
+
+```
+
+```{r}
+
+prop.table(taula_SS, margin = 1)
+
+```
+
+Com podem observar a la taula anterior, tenim un 74,2% de dones que sobreviuen front a un 18,8% d'homes sobrevivents.
+
+```{r}
+
+taula_CS <- table(totalData$Pclass, totalData$Survived)
+taula_CS
+
+```
+```{r}
+
+prop.table(taula_CS, margin = 1)
+
+```
+
+Veiem que el percentatge de gent que sobreviu en primera classe és pràcticament el doble que de gent no-sobrevivent. Per contra, en tercera classe el percentatge de passatgers que van morir és del triple que de passatgers que van sobreviure.
+
+```{r}
+
+taula_AS <- table(totalData$Age, totalData$Survived)
+taula_AS
+
+```
+
+```{r}
+
+prop.table(taula_AS, margin = 1)
+
+```
+
+Com veiem a la taula anterior, la franja d'edat que té en proporció més supervivents és la franja 0-9. La que menys la trobem a l'extrem, a la franja 70-79.
+
+```{r}
+
+taula_ASC <- table(totalData$Age, totalData$Survived, totalData$Pclass)
+taula_ASC
+
+```
+```{r}
+
+prop.table(taula_ASC, margin = 1)
+
+```
+
+De la taula anterior veiem fets interessants. Per exemple, a tercera classe no va sobreviure cap persona de la franja 70-79. També veiem que d'aquesta mateixa franja, cap persona viatjava en segona classe. També podem observar que dels passatgers de la franja 0-9 anys, pràcticament tots els que van morir viatjaven en tercera classe.
+
+Procedim a fer tests estadístics per tal de veure el grau de significança de la relació entre els atributs.
+
+```{r}
+
+if(!require(DescTools)){
+    install.packages('DescTools', repos='http://cran.us.r-project.org')
+    library(DescTools)
+}
+
+```
+
+```{r}
+
+Phi(taula_SS)
+
+```
+
+```{r}
+
+CramerV(taula_SS)
+
+```
+
+La funció Phi() ens retorna el coeficient de correlació entre dues variables. El coeficient és un valor entre 0 i 1, que quan major és, indica major correlació entre les variables. Per altra banda, la funció CramerV() ens retorna un estadístic que indica la mesura d’associació entre dues variables nominals.
+
+Cal destacar que per a una taula 2x2 (el qual és el nostre cas), el valor absolut de l’estadístic Phi equival a la V de Crammer. És per això que els valors obtinguts coincideixen.
+
+Pel valor obtingut, el gènere està mitjanament correlacionat amb haver sobreviscut. Anem a veure els estadístics per a les altres variables.
+
+```{r}
+
+Phi(taula_CS)
+
+```
+
+```{r}
+
+Phi(taula_AS)
+
+```
+
+Observem que de les variables analitzades, la que més correlació te amb haver sobreviscut és 'Sex'. Tot i així, el valor obtingut per al coeficient de correlació no ens indica una relació estadística significativa.
+
+A continuació revisarem també la correlació entre la classe i la quantiat de familiars a bord.
+Ho farem amb les correlacions de Pearson i Spearman.
+
+```{r}
+
+cor.test(totalData$Pclass, totalData$SibSp)
+
+```
+
+
+
+```{r}
+
+cor.test(totalData$Pclass, totalData$SibSp, method = "spearman")
+
+```
+
+En el cas de la correlació entre la classe i la quantitat de germans o cònjugues a bord veiem que és compleix la condició de normalitat, ja que p-valor és major a 0.05. Per tant, ens basarem amb la correlació de Pearson. No obstant, el valor de la correlació és molt petit. No podem confirmar que hi hagi correlació entre aquestes dues variables.
+
+
+
+```{r}
+
+cor.test(totalData$Pclass, totalData$Parch)
+
+```
+
+
+```{r}
+
+cor.test(totalData$Pclass, totalData$Parch, method = "spearman")
+
+```
+Si ho revisem amb la quantiat de pares o fills a bord veiem que compleix també la condició de normalitat, però la correlació també és molt petita. En aquest cas tampoc podem afirmar que hi hagi correlació entre aquestes dues variables.
+
+
+Finalment, per acabar les anàlisis utilitzarem el mètode de classificació. Farem un arbre de decisió amb els atributs Sex, Age i PClass.
+
+Primer de tot crearem un conjunt de dades nou amb els atributs que necessitem.
+
+```{r}
+if (!require('dplyr')) install.packages('dplyr'); library(dplyr)
+data <- select( totalData, Pclass, Age , Sex ,  Survived)
+head(data)
+
+```
+
+Passarem tots aquests atributs a categòrics.
+
+```{r}
+
+str(data)
+
+data$Sex <- as.factor(data$Sex)
+data$Pclass <- as.factor(data$Pclass)
+
+```
+
+
+```{r}
+
+str(data)
+
+```
+
+A continuació dividirem el conjunt de dades en Entrenament i Test, 2 terços seran entrenament i el terç restant el test.
+
+```{r}
+set.seed(666)
+y <- data[,4] 
+X <- data[,1:3] 
+
+
+split_prop <- 3 
+indexes = sample(1:nrow(data), size=floor(((split_prop-1)/split_prop)*nrow(data)))
+trainX<-X[indexes,]
+trainy<-y[indexes]
+testX<-X[-indexes,]
+testy<-y[-indexes]
+
+```
+
+```{r}
+summary(trainX)
+```
+
+```{r}
+str(trainy)
+```
+
+```{r}
+summary(testX)
+```
+
+```{r}
+summary(testy)
+```
+
+Un cop tenim les dades separades en dos conjunts ja podem crear l'arbre de decisió.
+
+```{r}
+
+if(!require(C50)){
+    install.packages('C50', repos='http://cran.us.r-project.org')
+    library(C50)
+}
+
+
+model <- C50::C5.0(trainX, trainy, trials = 10 )
+summary(model)
+
+```
+
+Pel que podem observar, en les 10 observacions que s'ha fet ha utilitzat el 100% de l'atribut Pclass, el 100% de Sex i el 67.34% de Age.
+
+
+```{r}
+plot(model)
+```
+
+Utilitzem el conjunt de test per calcular la precisió.
+
+```{r}
+predicted_model <- predict( model, testX, type="class" )
+print(sprintf("La precisió de l'arbre és: %.4f %%",100*sum(predicted_model == testy) / length(predicted_model)))
+```
+
+Una precisió del 77.1044% és una bona precisió, però s'hauria d'estudiar si seria possible millorant-la utilitzant altres atributs o creant-ne de nous.
+
+Per acabar, mostrarem també la matriu de confusió.
+
+```{r}
+mat_conf<-table(testy,Predicted=predicted_model)
+mat_conf
+```
+
+## Conclusions
+
+En aquest treball s'ha analitzat un conjunt de dades sobre els passatgers del Titanic. El que s'ha volgut estudiar és si els diferents atributs que conté tenen una relació amb l'atribut de Survived que és un atribut categòric que compren dos valors 0 i 1, segons si els passatgers van sobreviure al Titanic o no.
+
+Després de netejar i fer una primera anàlisi de les dades, s'ha arribat a la conclusió que els atributs que més relació tenien amb l'atribut Survived han sigut: Age, Sex i Pclass. A Age tenim l'edat dels passatgers, a Sex tenim el gènere dels passatgers i a Pclass, la classe en la qual viatjaven.
+
+Amb les diferents anàlisis hem pogut observar que van viatjar molts més homes que dones, però un 74,2% de dones van sobreviure enfront d'un 18,8% d'homes.
+
+També s'ha pogut observar que el percentatge de gent que va sobreviure en primera classe és pràcticament el doble que de gent no-sobrevivent. Per contra, en tercera classe el percentatge de passatgers que van morir és del triple que de passatgers que van sobreviure.
+
+La majoria de passatgers tenien entre 20 i 29 anys. Els nens i nenes de primera i segona classe van sobreviure gairebé tots, en canvi, més del 50% dels nens i nenes que viatjaven en tercera classe van morir.
+
+Finalment, hem creat un model de classificació utilitzant un arbre de decisió, per revisar si amb els atributs Sex, Age i Pclass seria possible predir l'atribut Survived. Hem obtingut un 77.1044 % de precisió.
+
+Per tant, i per concloure, podem confirmar que els atributs Sex, Age i Pclass són atributs fonamentals per poder predir si un pacient va poder sobreviure o no al Titanic.
+
+## Contribucions
+
+**Investigació prèvia**
+MSM, OBR
+
+**Redacció de les respostes**
+MSM, OBR
+
+**Desenvolupament del codi**
+MSM, OBR
+
+
+## Recursos
+ # Calvo M., Subirats L., Pérez D. (2019). Introducción a la limpieza y análisis de los datos. Editorial UOC.
